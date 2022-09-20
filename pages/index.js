@@ -26,7 +26,7 @@ export default function Home({ posts }) {
         <h1>My photography blog</h1>
         {weather ? (
           <p>
-            {weather.temperature} {weather.description} in a Coruña
+            {weather.temperature} {weather.description} in A Coruña
           </p>
         ) : (
           <p>Loading weather...</p>
@@ -57,15 +57,24 @@ export default function Home({ posts }) {
   );
 }
 
-export async function getStaticProps() {
-  const response = await fetch(`${process.env.NEXT_PUBLIC_BACKEND}/posts`);
+export async function getServerSideProps() {
+  try {
+    const res = await fetch(`${process.env.NEXT_PUBLIC_BACKEND}/posts`);
+    const posts = await res.json();
 
-  const posts = await response.json();
-
-  return {
-    props: {
-      posts,
-    },
-    revalidate: 10,
-  };
+    return {
+      props: {
+        posts,
+      },
+    };
+  } catch (error) {
+    return {
+      props: {
+        error: {
+          statusCode: 404,
+          message: error.message,
+        },
+      },
+    };
+  }
 }

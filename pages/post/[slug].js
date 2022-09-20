@@ -7,14 +7,6 @@ export default function Post({ post }) {
   // console.log(router.query);
   // {slug: 'valor-del-slug'}
 
-  const router = useRouter();
-
-  // If the page is not yet generated, this will be displayed
-  // initially until getStaticProps() finishes running
-  if (router.isFallback) {
-    return <div>Loading...</div>;
-  }
-
   return (
     <section className="post">
       <header>
@@ -40,43 +32,29 @@ export default function Post({ post }) {
   );
 }
 
-export async function getStaticPaths() {
-  const response = await fetch(`${process.env.NEXT_PUBLIC_BACKEND}/posts`);
+export async function getServerSideProps(context) {
+  try {
+    const res = await fetch(
+      `${process.env.NEXT_PUBLIC_BACKEND}/posts/${context.params.slug}`
+    );
 
-  const posts = await response.json();
+    if (!res.ok) {
+      throw new Error("Post not found");
+    }
 
-  const paths = posts.map((post) => {
+    const post = await res.json();
+
     return {
-      params: { slug: post.slug },
+      props: { post },
     };
-  });
-
-  return {
-    paths,
-    fallback: "blocking",
-  };
-
-  /*
-  [
-    {params: {slug: 'my-first-post'}},
-    {params: {slug: 'sunset-photos'}},
-    {params: {slug: 'black-white'}},
-    ...
-  ]
-  */
-}
-
-export async function getStaticProps(context) {
-  const response = await fetch(
-    `${process.env.NEXT_PUBLIC_BACKEND}/posts/${context.params.slug}`
-  );
-
-  const post = await response.json();
-
-  return {
-    props: {
-      post,
-    },
-    revalidate: 10, //in seconds
-  };
+  } catch (error) {
+    return {
+      props: {
+        error: {
+          statusCode: 404,
+          message: error.message,
+        },
+      },
+    };
+  }
 }
