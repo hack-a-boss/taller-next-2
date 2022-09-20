@@ -7,6 +7,14 @@ export default function Post({ post }) {
   // console.log(router.query);
   // {slug: 'valor-del-slug'}
 
+  const router = useRouter();
+
+  // If the page is not yet generated, this will be displayed
+  // initially until getStaticProps() finishes running
+  if (router.isFallback) {
+    return <div>Loading...</div>;
+  }
+
   return (
     <section className="post">
       <header>
@@ -32,33 +40,43 @@ export default function Post({ post }) {
   );
 }
 
-export async function getServerSideProps(context) {
-  try {
-    const response = await fetch(
-      `${process.env.NEXT_PUBLIC_BACKEND}/posts/${context.params.slug}`
-    );
+export async function getStaticPaths() {
+  const response = await fetch(`${process.env.NEXT_PUBLIC_BACKEND}/posts`);
 
-    if (!response.ok) {
-      return {
-        props: {
-          error: "Error cargando post...",
-          statusCode: 404,
-        },
-      };
-    }
-    const post = await response.json();
+  const posts = await response.json();
 
+  const paths = posts.map((post) => {
     return {
-      props: {
-        post,
-      },
+      params: { slug: post.slug },
     };
-  } catch (error) {
-    return {
-      props: {
-        error: "Error general",
-        statusCode: 500,
-      },
-    };
-  }
+  });
+
+  return {
+    paths,
+    fallback: "blocking",
+  };
+
+  /*
+  [
+    {params: {slug: 'my-first-post'}},
+    {params: {slug: 'sunset-photos'}},
+    {params: {slug: 'black-white'}},
+    ...
+  ]
+  */
+}
+
+export async function getStaticProps(context) {
+  const response = await fetch(
+    `${process.env.NEXT_PUBLIC_BACKEND}/posts/${context.params.slug}`
+  );
+
+  const post = await response.json();
+
+  return {
+    props: {
+      post,
+    },
+    revalidate: 10, //in seconds
+  };
 }
